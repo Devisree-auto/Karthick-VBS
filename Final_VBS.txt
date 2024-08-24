@@ -1,0 +1,93 @@
+Sub SummarizeData()
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("Sheet1") ' Change "Sheet1" to your actual sheet name
+
+    Dim outputWs As Worksheet
+    Set outputWs = ThisWorkbook.Sheets.Add(After:=ws)
+    outputWs.Name = "Summary" ' The name of the new sheet where the summary will be placed
+
+    ' Headers for the summary sheet
+    outputWs.Cells(1, 1).Value = "CVE"
+    outputWs.Cells(1, 2).Value = "Desc"
+    outputWs.Cells(1, 3).Value = "Serv"
+    outputWs.Cells(1, 4).Value = "Comp"
+    outputWs.Cells(1, 5).Value = "Summary"
+    outputWs.Cells(1, 6).Value = "Lib"
+    outputWs.Cells(1, 7).Value = "Version"
+
+    ' Get the last row of data in the input sheet
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+
+    ' Dictionary to store summary data
+    Dim cveDict As Object
+    Set cveDict = CreateObject("Scripting.Dictionary")
+
+    Dim i As Long
+    For i = 2 To lastRow ' Start from the second row, assuming the first row is headers
+        Dim cveKey As String
+        cveKey = ws.Cells(i, 6).Value ' CVE column
+
+        If Not cveDict.exists(cveKey) Then
+            cveDict.Add cveKey, New Collection
+        End If
+        
+        Dim imageName As String
+        imageName = ws.Cells(i, 1).Value ' Image Name column
+
+        cveDict(cveKey).Add imageName
+
+    Next i
+
+    ' Process and output the data
+    Dim outputRow As Long
+    outputRow = 2
+
+    Dim cve As Variant ' Declare cve as Variant for the For Each loop
+    For Each cve In cveDict.Keys
+        Dim impactedImages As String
+        impactedImages = Join(CollectionToArray(cveDict(cve)), ",")
+
+        Dim lib As String
+        lib = ""
+        
+        Dim version As String
+        version = ""
+        
+        ' Get description, server, component, lib, and version for the first instance of each CVE
+        For i = 2 To lastRow
+            If ws.Cells(i, 6).Value = cve Then
+                lib = ws.Cells(i, 4).Value ' Lib column
+                version = ws.Cells(i, 5).Value ' Version column
+                Exit For
+            End If
+        Next i
+
+        outputWs.Cells(outputRow, 1).Value = cve
+        outputWs.Cells(outputRow, 2).Value = "Desc " & cve & vbCrLf & "Impacted Image: " & impactedImages
+        outputWs.Cells(outputRow, 3).Value = ws.Cells(i, 8).Value ' Server column
+        outputWs.Cells(outputRow, 4).Value = ws.Cells(i, 2).Value ' Component column
+        outputWs.Cells(outputRow, 5).Value = cve & ": " & lib & " in " & version
+        outputWs.Cells(outputRow, 6).Value = lib
+        outputWs.Cells(outputRow, 7).Value = version
+
+        outputRow = outputRow + 1
+
+    Next cve
+
+    MsgBox "Summary has been created in a new sheet named 'Summary'."
+
+End Sub
+
+' Function to convert Collection to Array
+Function CollectionToArray(col As Collection) As Variant
+    Dim arr() As Variant
+    ReDim arr(0 To col.Count - 1)
+    Dim i As Long
+    For i = 1 To col.Count
+        arr(i - 1) = col.Item(i)
+    Next i
+    CollectionToArray = arr
+End Function
+
