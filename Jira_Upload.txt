@@ -32,20 +32,27 @@ Sub ImportToJira()
 
         ' Construct the JSON payload
         Dim jsonBody As String
-        jsonBody = "{""fields"": {""project"": {""key"": """ & ProjectKey & """},""summary"": """ & Summary & """,""description"": """ & Description & """,""issuetype"": {""name"": """ & IssueType & """},""priority"": {""name"": """ & IssuePriority & """}}}"
+        jsonBody = "{""fields"": {" _
+            & """project"": {""key"": """ & ProjectKey & """}," _
+            & """summary"": """ & Summary & """," _
+            & """description"": """ & Description & """," _
+            & """issuetype"": {""name"": """ & IssueType & """}," _
+            & """priority"": {""name"": """ & IssuePriority & """}" _
+            & "}}"
 
         ' Configure the HTTP request
         With http
             .Open "POST", JiraURL, False
             .setRequestHeader "Authorization", "Basic " & Base64Encode(Username & ":" & APIToken)
             .setRequestHeader "Content-Type", "application/json"
+            .setRequestHeader "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3" ' User-Agent Header
             .send jsonBody
 
             ' Check the response status
-            If .Status <> 201 Then
-                MsgBox "Error: " & .Status & " - " & .responseText
-            Else
+            If .Status = 201 Then
                 MsgBox "Issue created successfully: " & .responseText
+            Else
+                MsgBox "Error: " & .Status & " - " & .responseText
             End If
         End With
     Next i
