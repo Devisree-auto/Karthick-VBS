@@ -1,0 +1,71 @@
+Sub ImportToJira()
+    Dim http As Object
+    Set http = CreateObject("MSXML2.XMLHTTP.6.0")
+
+    Dim JiraURL As String
+    Dim Username As String
+    Dim APIToken As String
+    Dim ProjectKey As String
+    Dim IssueType As String
+    Dim Summary As String
+    Dim Description As String
+    Dim IssuePriority As String
+
+    ' Jira API endpoint for creating an issue
+    JiraURL = "https://yourdomain.atlassian.net/rest/api/2/issue"
+
+    ' Jira account username and API token
+    Username = "your-email@example.com"
+    APIToken = "your-api-token"
+
+    Dim lastRow As Long
+    Dim i As Long
+    lastRow = Sheets("Sheet1").Cells(Sheets("Sheet1").Rows.Count, "A").End(xlUp).Row
+
+    ' Loop through each row in the Excel sheet
+    For i = 2 To lastRow ' Assuming the first row contains headers
+        ProjectKey = Sheets("Sheet1").Cells(i, 1).Value ' Replace with the appropriate column number for Project Key
+        IssueType = Sheets("Sheet1").Cells(i, 2).Value ' Replace with the appropriate column number for Issue Type
+        Summary = Sheets("Sheet1").Cells(i, 3).Value ' Replace with the appropriate column number for Summary
+        Description = Sheets("Sheet1").Cells(i, 4).Value ' Replace with the appropriate column number for Description
+        IssuePriority = Sheets("Sheet1").Cells(i, 5).Value ' Replace with the appropriate column number for Priority
+
+        ' Construct the JSON payload
+        Dim jsonBody As String
+        jsonBody = "{""fields"": {""project"": {""key"": """ & ProjectKey & """},""summary"": """ & Summary & """,""description"": """ & Description & """,""issuetype"": {""name"": """ & IssueType & """},""priority"": {""name"": """ & IssuePriority & """}}}"
+
+        ' Configure the HTTP request
+        With http
+            .Open "POST", JiraURL, False
+            .setRequestHeader "Authorization", "Basic " & Base64Encode(Username & ":" & APIToken)
+            .setRequestHeader "Content-Type", "application/json"
+            .send jsonBody
+
+            ' Check the response status
+            If .Status <> 201 Then
+                MsgBox "Error: " & .Status & " - " & .responseText
+            Else
+                MsgBox "Issue created successfully: " & .responseText
+            End If
+        End With
+    Next i
+
+    Set http = Nothing
+End Sub
+
+' Function to encode the username and token to Base64
+Function Base64Encode(ByVal str As String) As String
+    Dim bytes() As Byte
+    bytes = StrConv(str, vbFromUnicode)
+    Dim objXML As Object
+    Dim objNode As Object
+
+    Set objXML = CreateObject("MSXML2.DOMDocument")
+    Set objNode = objXML.createElement("base64")
+    objNode.DataType = "bin.base64"
+    objNode.nodeTypedValue = bytes
+    Base64Encode = objNode.Text
+
+    Set objNode = Nothing
+    Set objXML = Nothing
+End Function
