@@ -1,0 +1,57 @@
+Sub CreateWorkbooksByComp()
+    ' Declare variables
+    Dim ws As Worksheet
+    Dim compCell As Range
+    Dim dataRange As Range
+    Dim uniqueComps As Collection
+    Dim newWb As Workbook
+    Dim filterRange As Range
+    Dim comp As Variant
+    Dim lastRow As Long
+    Dim savePath As String
+    
+    ' Set the worksheet containing the data
+    Set ws = ThisWorkbook.Sheets("Sheet1") ' Change "Sheet1" to the name of your sheet
+
+    ' Find the last row with data in column A
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    
+    ' Set the range of data to filter (assuming headers in row 1)
+    Set dataRange = ws.Range("A1:H" & lastRow) ' Adjust the range to include all your columns
+    
+    ' Create a collection to store unique Comp values
+    Set uniqueComps = New Collection
+    
+    ' Loop through the Comp column (Column B) to get unique values
+    On Error Resume Next
+    For Each compCell In ws.Range("B2:B" & lastRow) ' Adjust if "Comp" is not in column B
+        uniqueComps.Add compCell.Value, CStr(compCell.Value)
+    Next compCell
+    On Error GoTo 0
+
+    ' Loop through each unique Comp value
+    For Each comp In uniqueComps
+        ' Apply filter based on Comp
+        dataRange.AutoFilter Field:=2, Criteria1:=comp ' Adjust Field number if "Comp" is not in column B
+        
+        ' Create a new workbook
+        Set newWb = Workbooks.Add
+        
+        ' Copy the filtered data
+        ws.AutoFilter.Range.Copy Destination:=newWb.Sheets(1).Range("A1")
+        
+        ' Save the new workbook with the Comp name
+        savePath = ThisWorkbook.Path & "\" & comp & "_Data.xlsx"
+        newWb.SaveAs Filename:=savePath, FileFormat:=xlOpenXMLWorkbook
+        
+        ' Close the new workbook
+        newWb.Close SaveChanges:=False
+    Next comp
+
+    ' Remove the filter
+    ws.AutoFilterMode = False
+    
+    MsgBox "Separate workbooks have been created for each Comp.", vbInformation
+
+End Sub
+
